@@ -4,7 +4,7 @@
   "description": "根据excel表格创建表格并导入数据库到mysql",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node sample/test.js"
   },
   "repository": {
     "type": "git",
@@ -23,9 +23,14 @@
   "dependencies": {
     "fs": "0.0.1-security",
     "mysql": "^2.16.0",
+    "node-getopt": "^0.3.2",
     "path": "^0.12.7",
     "save": "^2.3.2",
     "xls-to-json-lc": "^0.3.4",
     "xlsx-to-json-lc": "^0.5.0"
+  },
+  "devDependencies": {
+    "mocha": "~1.17.1",
+    "should": "~3.1.2"
   }
 }
