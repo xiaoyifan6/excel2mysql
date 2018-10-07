@@ -74,8 +74,8 @@ function DB(config, callback, nomysql) {
 
 DB.prototype.closeConn = function (connect) {
     var tmpFile = ".tmp.#json";
-    if (fs.exists(tmpFile)) {
-        fs.unlink(tmpFile);
+    if (fs.existsSync(tmpFile)) {
+        fs.unlinkSync(tmpFile);
     }
     connect && connect.end();
 }

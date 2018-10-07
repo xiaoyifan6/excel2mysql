@@ -12,7 +12,7 @@
 just get sql:
 
 ```
-var excel2mysql = require('../');
+var excel2mysql = require('excel2mysql');
 
 var excelPath = "./sample.xls";
 
@@ -31,7 +31,7 @@ excel2mysql({
 connect mysql:
 
 ```
-var excel2mysql = require('../');
+var excel2mysql = require('excel2mysql');
 
 var excelPath = "./sample.xls";
 
