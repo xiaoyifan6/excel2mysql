@@ -85,3 +85,11 @@ pk = primary key
 if use `ai`, this col will be ignored
 
 ![](./sample/imgs/3.png)
+
+---
+
+[简书地址](https://www.jianshu.com/p/b1c4496638a2)
+
+[github地址](https://github.com/xiaoyifan6/excel2mysql)
+
+
