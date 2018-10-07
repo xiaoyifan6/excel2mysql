@@ -1,6 +1,6 @@
 {
   "name": "excel2mysql",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "根据excel表格创建表格并导入数据库到mysql",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,10 @@
   },
   "keywords": [
     "excel",
-    "mysql"
+    "mysql",
+    "covert",
+    "excel2mysql",
+    "exceltomysql"
   ],
   "author": "xiaoyifan <http://www/mylib.xyz>",
   "license": "MIT",
