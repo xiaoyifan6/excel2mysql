@@ -210,6 +210,8 @@ DB.prototype.createTable = function (connect, callback, tableName, rows, comment
                 .replace(",pk", ",primary key ")
                 .replace(",nn", ",not null ")
                 .replace(",uk", ",unique")
+                .replace(",uq", ",unique")
+                .replace(",up", ",unique")
                 .replace(",ai", ",auto_increment")
                 .replace(",(null)", "")
                 .replace(/,[(](.*)[)]/, "default '$1'")

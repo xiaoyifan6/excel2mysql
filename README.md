@@ -78,7 +78,7 @@ data type(row:3):`[type],[pk,ai,nn,uq,(0)]...`
 (0) = default 0 
 ai = auto_increment
 nn = not null
-up = unique
+uq = unique
 pk = primary key
 ```
 
