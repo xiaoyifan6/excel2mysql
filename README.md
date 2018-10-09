@@ -61,6 +61,9 @@ delete: just drop table
 update: just add new table , and import data to a new table
 create: drop all table, then create tables and import data to tables
 ```
+- no_comment: true or false(defualt), if ture, threre is no comment for sql of creating tables
+- ingnore_prefix: `-`(default), if the name field starts with that, it will be ignored
+
 
 ### excel fromat
 
@@ -85,6 +88,39 @@ pk = primary key
 if use `ai`, this col will be ignored
 
 ![](./sample/imgs/3.png)
+
+## Global Install
+
+```
+npm install excel2mysql -g
+```
+
+### Use as Command
+```
+excel2mysql -o ./x.sql -i ./sample/sample.xls -S 100
+```
+
+### Param
+
+```
+$: excel2mysql --help
+
+Options:
+  -i, --input=ARG          excel-file Path
+  -o, --output=ARG         sql-file path
+      --no-comment         no comment for table and columns in sql
+      --show-sql           print sql to console
+  -S                       a number, print sql to console, and the string.length <= this number
+      --ingnore-prefix=ARG if the name field starts with that, it will be ignored
+      --help               show Help
+  -v, --version            show version
+  -m, --model=ARG          model: create(default), delete, update
+  -P, --port=ARG           mysql:port default: 3306
+  -h, --host=ARG           mysql:host default: 127.0.0.1
+  -p, --password=ARG       mysql:password default: root
+  -u, --user=ARG           mysql:username default: root
+  -d, --database=ARG       mysql:database
+```
 
 ---
 

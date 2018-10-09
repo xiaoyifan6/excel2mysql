@@ -16,7 +16,6 @@ String.prototype.format = function () {
     return a;
 }
 
-
 function EXCEL_Mysql(config, callback) {
     var nomysql = false;
     if (!config.input) {
@@ -373,7 +372,7 @@ DB.prototype.createTableBySheet = function (connect, callback, config, tableName
                 if (!v || v.startsWith(config.ingnore_prefix)) return;
                 rows.push({
                     name: v,
-                    comment: res[0][v],
+                    comment: config.no_comment ? undefined : res[0][v],
                     type: res[1][v],
                     len: res[2][v],
                 });
@@ -384,7 +383,7 @@ DB.prototype.createTableBySheet = function (connect, callback, config, tableName
             for (var i = 3; i < res.length; i++) {
                 datas.push(res[i]);
             }
-            this.createTable(connect, callback, tableName, rows, comment).then(res => {
+            this.createTable(connect, callback, tableName, rows, config.no_comment ? undefined : comment).then(res => {
                 callback && callback(null, null, res);
                 if (datas.length > 0) {
                     if (config.model == "update") {
