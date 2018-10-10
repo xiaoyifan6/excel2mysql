@@ -16,8 +16,6 @@ var excel2mysql = require('excel2mysql');
 
 var excelPath = "./sample.xls";
 
-var excelPath = "./sample.xls";
-
 excel2mysql({
     input: excelPath,
     model: 'create'
@@ -32,8 +30,6 @@ connect mysql:
 
 ```
 var excel2mysql = require('excel2mysql');
-
-var excelPath = "./sample.xls";
 
 excel2mysql({
     input: excelPath,
@@ -58,7 +54,7 @@ excel2mysql({
 - model: 
 ```
 delete: just drop table
-update: just add new table , and import data to a new table
+update: just add new table , and import data to a new table, if no config for mysql, the model equal "create"
 create: drop all table, then create tables and import data to tables
 ```
 - no_comment: true or false(defualt), if ture, threre is no comment for sql of creating tables
@@ -83,6 +79,10 @@ ai = auto_increment
 nn = not null
 uq = unique
 pk = primary key
+
+zf = zerofill (only use for number)
+un = unsigned (only use for number)
+bin = binary (only use for string)
 ```
 
 if use `ai`, this col will be ignored
@@ -97,7 +97,11 @@ npm install excel2mysql -g
 
 ### Use as Command
 ```
-excel2mysql -o ./x.sql -i ./sample/sample.xls -S 100
+excel2mysql -o ./db.sql -i ./sample/sample.xls -S 100
+
+#or
+
+excel2mysql -o ./db.sql -i ./sample/sample.xls -S 100 -uwork -pwork -dtest
 ```
 
 ### Param

@@ -57,10 +57,10 @@ try {
             } else {
                 fs.unlinkSync(output);
             }
-            fs.writeFileSync(output, "# sql");
+            fs.writeFileSync(output, "# sql\r\n");
         } else {
             //直接写入 如果异常，则说明不是文件或者文件路径不存在
-            fs.writeFileSync(output, "# sql");
+            fs.writeFileSync(output, "# sql\r\n");
         }
     }
 } catch (e) {

@@ -212,6 +212,11 @@ DB.prototype.createTable = function (connect, callback, tableName, rows, comment
                 .replace(",uq", ",unique")
                 .replace(",up", ",unique")
                 .replace(",ai", ",auto_increment")
+
+                .replace(",zf", ",zerofill")
+                .replace(",un", ",unsigned")
+                .replace(",bin", ",binary")
+
                 .replace(",(null)", "")
                 .replace(/,[(](.*)[)]/, "default '$1'")
                 .split(",");
