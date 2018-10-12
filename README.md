@@ -54,10 +54,10 @@ excel2mysql({
 - model: 
 ```
 delete: just drop table
-update: just add new table , and import data to a new table, if no config for mysql, the model equal "create"
+update: just add new table , and import data to a new table, if no config for mysql, the model eqaul "create"
 create: drop all table, then create tables and import data to tables
 ```
-- no_comment: true or false(defualt), if ture, threre is no comment for sql of creating tables
+- no_comment: true or false(default), if ture, threre is no comment for sql of creating tables
 - ingnore_prefix: `-`(default), if the name field starts with that, it will be ignored
 
 

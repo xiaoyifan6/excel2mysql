@@ -18,7 +18,11 @@
     "mysql",
     "covert",
     "excel2mysql",
-    "exceltomysql"
+    "exceltomysql",
+    "xls",
+    "xlsx",
+    "xls2mysql",
+    "xlsx2mysql"
   ],
   "author": "xiaoyifan <http://www/mylib.xyz>",
   "license": "MIT",
