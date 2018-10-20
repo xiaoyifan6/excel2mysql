@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const excel_mysql = require('./libs');
-const fs = require("fs")
+
+const fs = require("fs");
 var opt = require('node-getopt').create([
     ['i', 'input=ARG', 'excel-file Path'],
     ['o', 'output=ARG', 'sql-file path'],
@@ -68,7 +69,6 @@ try {
     output = "";
 }
 
-
 excel_mysql(config, (err, sql, result) => {
     err && console.error(err);
     if (result && (typeof result == "string")) {
@@ -84,7 +84,7 @@ excel_mysql(config, (err, sql, result) => {
             }
         }
         if (output) {
-            var sqlStr = "#[" + sql.type + "] \r\n" + sql.sql + "\r\n\r\n";
+            var sqlStr = "#[" + sql.type + "] \r\n" + sql.sql + ";\r\n\r\n";
             fs.appendFileSync(output, sqlStr);
         }
     }

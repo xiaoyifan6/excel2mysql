@@ -198,7 +198,7 @@ DB.prototype.run = function (config, connect, callback) {
 DB.prototype.createTable = function (connect, callback, tableName, rows, comment) {
     return new Promise((resolv, reject) => {
         if (!tableName || !rows || rows.length == 0) {
-            reject("tableName cannot be null or empty string and please confirm there have one field at least");
+            reject("tableName:" + tableName + " cannot be null or empty string and please confirm there have one field at least");
             return;
         }
 
@@ -234,7 +234,7 @@ DB.prototype.createTable = function (connect, callback, tableName, rows, comment
             return types.join(' ');
         }
 
-        var sql = "create table if not exists {0} ( {1} ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+        var sql = "create table if not exists `{0}` ( {1} ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
         if (comment) {
             sql += " comment='" + comment + "'";
         }
@@ -281,7 +281,7 @@ DB.prototype.dropTable = function (connect, tableName, callback) {
             reject("tableName cannot be null or empty string");
             return;
         }
-        var sql = "drop table if exists " + tableName;
+        var sql = "drop table if exists `" + tableName + "`";
         this.println(sql, "drop", callback);
         if (!connect) {
             resolve();
@@ -308,7 +308,7 @@ DB.prototype.insertData = function (connect, tableName, dataItems, callback, ign
             reject("tableName cannot be null or empty string and there is no data to import");
             return;
         }
-        var sql = "insert into {0} {1} values {2}";
+        var sql = "insert into `{0}` {1} values {2}";
         var keys = [];
         var keys0 = [];
 
