@@ -206,6 +206,7 @@ DB.prototype.createTable = function (connect, callback, tableName, rows, comment
             var types = type
                 .toLowerCase()
                 .trim()
+                .replace(/,default[\s]+([^\s,]*)/, ",default '$1'")
                 .replace(",pk", ",primary key ")
                 .replace(",nn", ",not null ")
                 .replace(",uk", ",unique")
@@ -218,7 +219,8 @@ DB.prototype.createTable = function (connect, callback, tableName, rows, comment
                 .replace(",bin", ",binary")
 
                 .replace(",(null)", "")
-                .replace(/,[(](.*)[)]/, "default '$1'")
+
+                .replace(/,[(](.*)[)]/, ",default '$1'")
                 .split(",");
 
             switch (types[0].toLowerCase()) {
@@ -302,7 +304,7 @@ DB.prototype.dropTable = function (connect, tableName, callback) {
  * @param {表名} tableName 
  * @param {*} dataItems 
  */
-DB.prototype.insertData = function (connect, tableName, dataItems, callback, ignoreID) {
+DB.prototype.insertData = function (connect, tableName, dataItems, callback, ignoreID, types) {
     return new Promise((resolve, reject) => {
         if (!tableName || !dataItems || dataItems.length == 0) {
             reject("tableName cannot be null or empty string and there is no data to import");
@@ -320,16 +322,32 @@ DB.prototype.insertData = function (connect, tableName, dataItems, callback, ign
         }
         var values = [];
 
-        var parseVal = function (val) {
+        var parseVal = function (val, key) {
 
-            if (val == null || val == 'null') return "null";
-            else if (val.trim().length == 0) return "''";
+            if (val == null || val == 'null' || val.trim().length == 0) {
+                if (key && val != 'null' && types[key]) {
+                    //replace(/,[(](.*)[)]/, "default '$1'")
+                    var type = types[key].replace(/,default[\s]+([^\s,]*)/, "('$1')")
+                    if (type.lastIndexOf('(') >= 0 && type.lastIndexOf(')') >= 0) {
+                        var defaultVal = type.substring(type.lastIndexOf('(') + 1, type.lastIndexOf(')'));
+                        return parseVal(defaultVal);
+                    }
+                }
+                return "null";
+            }
+            // else if (val.trim().length == 0) return "''";
             try {
                 if (isNaN(parseFloat(val))) {
+                    if (/['"][^'"]+['"]/.test(val)) {
+                        return val;
+                    }
                     return "'" + val + "'";
                 }
                 return val;
             } catch (e) {
+                if (/['"][^'"]+['"]/.test(val)) {
+                    return val;
+                }
                 return "'" + val + "'";
             }
         }
@@ -338,7 +356,7 @@ DB.prototype.insertData = function (connect, tableName, dataItems, callback, ign
             var value = "( ";
             var v = [];
             for (var key of keys) {
-                key && v.push(parseVal(dataItems[i][key]));
+                key && v.push(parseVal(dataItems[i][key], key));
             }
             value += v.join(",");
             value += ")";
@@ -373,6 +391,7 @@ DB.prototype.createTableBySheet = function (connect, callback, config, tableName
             var rows = [];
             var datas = [];
             var ignoreID = "";
+            var types = res[1];
             Object.keys(res[0]).forEach((v) => {
                 if (!v || v.startsWith(config.ingnore_prefix)) return;
                 rows.push({
@@ -396,7 +415,7 @@ DB.prototype.createTableBySheet = function (connect, callback, config, tableName
                         if (res1 && res1.indexOf(tableName) >= 0) {
                             resolve(res1);
                         } else {
-                            this.insertData(connect, tableName, datas, callback, ignoreID).then(res0 => {
+                            this.insertData(connect, tableName, datas, callback, ignoreID, types).then(res0 => {
                                 resolve(res0);
                             }).catch(err0 => {
                                 reject(err0);
@@ -416,7 +435,7 @@ DB.prototype.createTableBySheet = function (connect, callback, config, tableName
                         //     reject(err1);
                         // });
                     } else {
-                        this.insertData(connect, tableName, datas, callback, ignoreID).then(res0 => {
+                        this.insertData(connect, tableName, datas, callback, ignoreID, types).then(res0 => {
                             resolve(res0);
                         }).catch(err0 => {
                             reject(err0);
