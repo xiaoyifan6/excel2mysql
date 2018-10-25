@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const excel_mysql = require('./libs');
 
+const path = require("path");
 const fs = require("fs");
 var opt = require('node-getopt').create([
     ['i', 'input=ARG', 'excel-file Path'],
@@ -28,6 +29,8 @@ if (version) {
     return;
 }
 
+var curPath = process.cwd();
+
 var showSql = opt.options['show-sql'] || opt.options['S'];
 var sqlLimit = opt.options['S'];
 var output = opt.options['o'];
@@ -49,12 +52,20 @@ config.input = opt.options['i'];
 config.no_comment = opt.options['no-comment'];
 config.ingnore_prefix = opt.options['ingnore-prefix'] || '_';
 
+if (config.input && !path.isAbsolute(config.input)) {
+    config.input = path.join(curPath, config.input);
+}
+
 try {
     if (output) {
+        if (!path.isAbsolute(output)) {
+            output = path.join(curPath, output);
+        }
         if (fs.existsSync(output)) {
             var state = fs.statSync(output);
             if (state.isDirectory()) {//如果是已存在的路径 就加上sql文件
-                output += "/" + (config.database || "db") + ".sql";
+                // output += "/" + (config.database || "db") + ".sql";
+                output = path.join(output, (config.database || "db") + ".sql");
             } else {
                 fs.unlinkSync(output);
             }
