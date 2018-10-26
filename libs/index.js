@@ -91,8 +91,8 @@ DB.prototype.getExcelData = function (excelPath, sheepName, tmpFile) {
             sheet: sheepName,  // 如果有多个表单的话，制定一个表单（excel下面那些标签），可以忽略
             lowerCaseHeaders: true //所有英文表头转成大写，可以忽略
         }, function (err, result) {
-            if (fs.exists(tmpFile)) {
-                fs.unlink(tmpFile);
+            if (fs.existsSync(tmpFile)) {
+                fs.unlinkSync(tmpFile);
             }
             if (err) {
                 reject(err);
