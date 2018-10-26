@@ -337,7 +337,7 @@ DB.prototype.insertData = function (connect, tableName, dataItems, callback, ign
             }
             // else if (val.trim().length == 0) return "''";
             try {
-                if (isNaN(parseFloat(val))) {
+                if (isNaN(val)) {
                     if (/['"][^'"]+['"]/.test(val)) {
                         return val;
                     }
