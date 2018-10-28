@@ -72,14 +72,10 @@ function DB(config, callback, nomysql) {
 // }
 
 DB.prototype.closeConn = function (connect) {
-    var tmpFile = ".tmp.#json";
-    if (fs.existsSync(tmpFile)) {
-        fs.unlinkSync(tmpFile);
-    }
     connect && connect.end();
 }
 
-DB.prototype.getExcelData = function (excelPath, sheepName, tmpFile) {
+DB.prototype.getExcelData = function (excelPath, sheepName) {
     return new Promise((resolve, reject) => {
         if (!excelPath) {
             reject("You miss a input file!");
@@ -87,13 +83,11 @@ DB.prototype.getExcelData = function (excelPath, sheepName, tmpFile) {
         }
         exceltojson && exceltojson({
             input: excelPath, //要转换的excel文件，如"/Users/chenyihui/文件/matt/1_2.xlsx"
-            output: tmpFile,//"if you want output to be stored in a file", //输出的json文件，可以不写。如"./yeap.json"
+            output: null,
+            // output: tmpFile,//"if you want output to be stored in a file", //输出的json文件，可以不写。如"./yeap.json"
             sheet: sheepName,  // 如果有多个表单的话，制定一个表单（excel下面那些标签），可以忽略
             lowerCaseHeaders: true //所有英文表头转成大写，可以忽略
         }, function (err, result) {
-            if (fs.existsSync(tmpFile)) {
-                fs.unlinkSync(tmpFile);
-            }
             if (err) {
                 reject(err);
             } else {
@@ -111,8 +105,7 @@ DB.prototype.println = function (sql, type, callback) {
 }
 
 DB.prototype.run = function (config, connect, callback) {
-    var tmpFile = ".tmp.#json";//tmp file
-    this.getExcelData(config.input, null, tmpFile).then(res => {
+    this.getExcelData(config.input, null).then(res => {
 
         if (!res) {
             callback && callback(null, null, "warn: no tables");
@@ -382,8 +375,7 @@ DB.prototype.insertData = function (connect, tableName, dataItems, callback, ign
 
 DB.prototype.createTableBySheet = function (connect, callback, config, tableName, comment) {
     return new Promise((resolve, reject) => {
-        var tmpFile = ".tmp.#json";//tmp file
-        this.getExcelData(config.input, tableName, tmpFile).then(res => {
+        this.getExcelData(config.input, tableName).then(res => {
             if (!res || res.length == 0) {
                 reject("no such database:" + tableName);
                 return;
