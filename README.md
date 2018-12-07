@@ -56,10 +56,10 @@ excel2mysql({
 delete: just drop table
 update: just add new table , and import data to a new table, if no config for mysql, the model eqaul "create"
 create: drop all table, then create tables and import data to tables
+check: display the difference between mysql data table and excel file, and will not import data to mysql
 ```
 - no_comment: true or false(default), if ture, threre is no comment for sql of creating tables
 - ingnore_prefix: `-`(default), if the name field starts with that, it will be ignored
-
 
 ### excel fromat
 

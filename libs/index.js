@@ -55,6 +55,10 @@ function DB(config, callback, nomysql) {
                 self.tableNames = res;
             }
             self.run(config, connect, callback);
+            // self.getColumns(connect, config.mysql.database, res[0]).then(res00 => {
+            //     console.log(JSON.stringify(res00, null, "\t"));
+            //     self.closeConn(connect);
+            // });
         }).catch(err => {
             console.log(err);
             callback && callback(err);
@@ -105,6 +109,7 @@ DB.prototype.println = function (sql, type, callback) {
 }
 
 DB.prototype.run = function (config, connect, callback) {
+
     this.getExcelData(config.input, null).then(res => {
 
         if (!res) {
@@ -188,108 +193,86 @@ DB.prototype.run = function (config, connect, callback) {
  * @param {表名} tableName 
  * @param {*} rows 
  */
-DB.prototype.createTable = function (connect, callback, tableName, rows, comment) {
-    return new Promise((resolv, reject) => {
-        if (!tableName || !rows || rows.length == 0) {
-            reject("tableName:" + tableName + " cannot be null or empty string and please confirm there have one field at least");
-            return;
+DB.prototype.createTable = async function (connect, callback, tableName, rows, comment) {
+    if (!tableName || !rows || rows.length == 0) {
+        throw ("tableName:" + tableName + " cannot be null or empty string and please confirm there have one field at least");
+    }
+
+    var getType = function (type, len) {
+        var types = type
+            .toLowerCase()
+            .trim()
+            .replace(/,default[\s]+([^\s,]*)/, ",default '$1'")
+            .replace(",pk", ",primary key ")
+            .replace(",nn", ",not null ")
+            .replace(",uk", ",unique")
+            .replace(",uq", ",unique")
+            .replace(",up", ",unique")
+            .replace(",ai", ",auto_increment")
+
+            .replace(",zf", ",zerofill")
+            .replace(",un", ",unsigned")
+            .replace(",bin", ",binary")
+
+            .replace(",(null)", "")
+
+            .replace(/,[(](.*)[)]/, ",default '$1'")
+            .split(",");
+
+        switch (types[0].toLowerCase()) {
+            case 'string': types[0] = "varchar"; break;
+            case 'boolean': types[0] = "tinyint"; break;
         }
 
-        var getType = function (type, len) {
-            var types = type
-                .toLowerCase()
-                .trim()
-                .replace(/,default[\s]+([^\s,]*)/, ",default '$1'")
-                .replace(",pk", ",primary key ")
-                .replace(",nn", ",not null ")
-                .replace(",uk", ",unique")
-                .replace(",uq", ",unique")
-                .replace(",up", ",unique")
-                .replace(",ai", ",auto_increment")
+        if (len) {
+            types[0] += '(' + len + ') ';
+        } else if (types[0].toLowerCase() == 'varcher') {
+            types[0] += '(255) ';
+        }
+        return types.join(' ');
+    }
 
-                .replace(",zf", ",zerofill")
-                .replace(",un", ",unsigned")
-                .replace(",bin", ",binary")
-
-                .replace(",(null)", "")
-
-                .replace(/,[(](.*)[)]/, ",default '$1'")
-                .split(",");
-
-            switch (types[0].toLowerCase()) {
-                case 'string': types[0] = "varchar"; break;
-                case 'boolean': types[0] = "tinyint"; break;
+    var sql = "create table if not exists `{0}` ( {1} ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
+    if (comment) {
+        sql += " comment='" + comment + "'";
+    }
+    var lines = [];
+    for (var key in rows) {
+        var line = "";
+        var row = rows[key];
+        if (row && row.name) {
+            line += " `" + row.name + "` ";
+            var _type = getType(row.type, row.len); // row.len ? row.type + ("(" + row.len + ")") : row.type;
+            if (row.name == "id" && _type.indexOf("primary key") < 0) {
+                _type += " primary key ";
             }
-
-            if (len) {
-                types[0] += '(' + len + ') ';
-            } else if (types[0].toLowerCase() == 'varcher') {
-                types[0] += '(255) ';
+            line += _type;
+            if (row.comment) {
+                line += " comment '" + row.comment + "'"
             }
-            return types.join(' ');
         }
+        lines.push(line);
+    }
 
-        var sql = "create table if not exists `{0}` ( {1} ) ENGINE=InnoDB DEFAULT CHARSET=utf8";
-        if (comment) {
-            sql += " comment='" + comment + "'";
-        }
-        var lines = [];
-        for (var key in rows) {
-            var line = "";
-            var row = rows[key];
-            if (row && row.name) {
-                line += " `" + row.name + "` ";
-                var _type = getType(row.type, row.len); // row.len ? row.type + ("(" + row.len + ")") : row.type;
-                if (row.name == "id" && _type.indexOf("primary key") < 0) {
-                    _type += " primary key ";
-                }
-                line += _type;
-                if (row.comment) {
-                    line += " comment '" + row.comment + "'"
-                }
-            }
-            lines.push(line);
-        }
-
-        this.println(sql.format(tableName, lines.join(",")), "create", callback);
-        if (!connect) {
-            resolv();
-            return;
-        }
-        connect.query(sql.format(tableName, lines.join(",")), (err, result, field) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolv(result);
-            }
-        });
-    });
+    this.println(sql.format(tableName, lines.join(",")), "create", callback);
+    if (connect) {
+        return await this.query(connect, sql.format(tableName, lines.join(",")));
+    }
 }
 
 /**
  * 删除表
  * @param {表名} tableName 
  */
-DB.prototype.dropTable = function (connect, tableName, callback) {
-    return new Promise((resolve, reject) => {
-        if (!tableName) {
-            reject("tableName cannot be null or empty string");
-            return;
-        }
-        var sql = "drop table if exists `" + tableName + "`";
-        this.println(sql, "drop", callback);
-        if (!connect) {
-            resolve();
-            return;
-        }
-        connect && connect.query(sql, (err, result) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(result);
-            }
-        });
-    });
+DB.prototype.dropTable = async function (connect, tableName, callback) {
+    if (!tableName) {
+        throw ("tableName cannot be null or empty string");
+    }
+    var sql = "drop table if exists `" + tableName + "`";
+    this.println(sql, "drop", callback);
+    if (connect) {
+        return await this.query(connect, sql);
+    }
 }
 
 /**
@@ -297,175 +280,155 @@ DB.prototype.dropTable = function (connect, tableName, callback) {
  * @param {表名} tableName 
  * @param {*} dataItems 
  */
-DB.prototype.insertData = function (connect, tableName, dataItems, callback, ignoreID, types) {
-    return new Promise((resolve, reject) => {
-        if (!tableName || !dataItems || dataItems.length == 0) {
-            reject("tableName cannot be null or empty string and there is no data to import");
-            return;
+DB.prototype.insertData = async function (connect, tableName, dataItems, callback, ignoreID, types) {
+    if (!tableName || !dataItems || dataItems.length == 0) {
+        throw ("tableName cannot be null or empty string and there is no data to import");
+    }
+    var sql = "insert into `{0}` {1} values {2}";
+    var keys = [];
+    var keys0 = [];
+
+    for (var key in dataItems[0]) {
+        if (key && !key.startsWith("_") && key != ignoreID) {
+            keys.push(key);
+            keys0.push('`' + key + '`');
         }
-        var sql = "insert into `{0}` {1} values {2}";
-        var keys = [];
-        var keys0 = [];
+    }
+    var values = [];
 
-        for (var key in dataItems[0]) {
-            if (key && !key.startsWith("_") && key != ignoreID) {
-                keys.push(key);
-                keys0.push('`' + key + '`');
+    var parseVal = function (val, key) {
+
+        if (val == null || val == 'null' || val.trim().length == 0) {
+            if (key && val != 'null' && types[key]) {
+                //replace(/,[(](.*)[)]/, "default '$1'")
+                var type = types[key].replace(/,default[\s]+([^\s,]*)/, "('$1')")
+                if (type.lastIndexOf('(') >= 0 && type.lastIndexOf(')') >= 0) {
+                    var defaultVal = type.substring(type.lastIndexOf('(') + 1, type.lastIndexOf(')'));
+                    return parseVal(defaultVal);
+                }
             }
+            return "null";
         }
-        var values = [];
-
-        var parseVal = function (val, key) {
-
-            if (val == null || val == 'null' || val.trim().length == 0) {
-                if (key && val != 'null' && types[key]) {
-                    //replace(/,[(](.*)[)]/, "default '$1'")
-                    var type = types[key].replace(/,default[\s]+([^\s,]*)/, "('$1')")
-                    if (type.lastIndexOf('(') >= 0 && type.lastIndexOf(')') >= 0) {
-                        var defaultVal = type.substring(type.lastIndexOf('(') + 1, type.lastIndexOf(')'));
-                        return parseVal(defaultVal);
-                    }
-                }
-                return "null";
-            }
-            // else if (val.trim().length == 0) return "''";
-            try {
-                if (isNaN(val)) {
-                    if (/['"][^'"]+['"]/.test(val)) {
-                        return val;
-                    }
-                    return "'" + val + "'";
-                }
-                return val;
-            } catch (e) {
+        // else if (val.trim().length == 0) return "''";
+        try {
+            if (isNaN(val)) {
                 if (/['"][^'"]+['"]/.test(val)) {
                     return val;
                 }
                 return "'" + val + "'";
             }
-        }
-
-        for (var i = 0; i < dataItems.length; i++) {
-            var value = "( ";
-            var v = [];
-            for (var key of keys) {
-                key && v.push(parseVal(dataItems[i][key], key));
+            return val;
+        } catch (e) {
+            if (/['"][^'"]+['"]/.test(val)) {
+                return val;
             }
-            value += v.join(",");
-            value += ")";
-
-            values.push(value);
+            return "'" + val + "'";
         }
+    }
 
-        this.println(sql.format(tableName, "(" + keys0.join(",") + ")", values), "insert", callback);
-        if (!connect) {
-            resolve();
-            return;
+    for (var i = 0; i < dataItems.length; i++) {
+        var value = "( ";
+        var v = [];
+        for (var key of keys) {
+            key && v.push(parseVal(dataItems[i][key], key));
         }
-        connect.query(sql.format(tableName, "(" + keys0.join(",") + ")", values), (err, result) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(result);
-            }
-        });
-    });
+        value += v.join(",");
+        value += ")";
+
+        values.push(value);
+    }
+
+    this.println(sql.format(tableName, "(" + keys0.join(",") + ")", values), "insert", callback);
+
+    if (connect) {
+        return await this.query(connect, sql.format(tableName, "(" + keys0.join(",") + ")", values));
+    }
 }
 
 
-DB.prototype.createTableBySheet = function (connect, callback, config, tableName, comment) {
-    return new Promise((resolve, reject) => {
-        this.getExcelData(config.input, tableName).then(res => {
-            if (!res || res.length == 0) {
-                reject("no such database:" + tableName);
-                return;
-            }
-            var rows = [];
-            var datas = [];
-            var ignoreID = "";
-            var types = res[1];
-            Object.keys(res[0]).forEach((v) => {
-                if (!v || v.startsWith(config.ingnore_prefix)) return;
-                rows.push({
-                    name: v,
-                    comment: config.no_comment ? undefined : res[0][v],
-                    type: res[1][v],
-                    len: res[2][v],
-                });
-                if (res[1][v].indexOf(",ai") >= 0 || res[1][v].indexOf(",auto_increment") >= 0) {
-                    ignoreID = v;
-                }
-            });
-            for (var i = 3; i < res.length; i++) {
-                datas.push(res[i]);
-            }
-            this.createTable(connect, callback, tableName, rows, config.no_comment ? undefined : comment).then(res => {
-                callback && callback(null, null, res);
-                if (datas.length > 0) {
-                    if (config.model == "update") {
-                        var res1 = this.tableNames;
-                        if (res1 && res1.indexOf(tableName) >= 0) {
-                            resolve(res1);
-                        } else {
-                            this.insertData(connect, tableName, datas, callback, ignoreID, types).then(res0 => {
-                                resolve(res0);
-                            }).catch(err0 => {
-                                reject(err0);
-                            });
-                        }
-                        // this.getTablesFromDB(connect).then(res1 => {
-                        //     if (res1 && res1.indexOf(tableName) >= 0) {
-                        //         resolve(res1);
-                        //     } else {
-                        //         this.insertData(connect, tableName, datas, callback).then(res0 => {
-                        //             resolve(res0);
-                        //         }).catch(err0 => {
-                        //             reject(err0);
-                        //         });
-                        //     }
-                        // }).catch(err1 => {
-                        //     reject(err1);
-                        // });
-                    } else {
-                        this.insertData(connect, tableName, datas, callback, ignoreID, types).then(res0 => {
-                            resolve(res0);
-                        }).catch(err0 => {
-                            reject(err0);
-                        });
-                    }
-                    // resolve(res);
-                } else {
-                    resolve(res);
-                }
-            }).catch(err => {
-                reject(err);
-            });
-        }).catch(err => {
-            reject(err);
+DB.prototype.createTableBySheet = async function (connect, callback, config, tableName, comment) {
+    var res = await this.getExcelData(config.input, tableName);
+
+    if (!res || res.length == 0) {
+        throw ("no such database:" + tableName);
+    }
+
+    var rows = [];
+    var datas = [];
+    var ignoreID = "";
+    var types = res[1];
+    Object.keys(res[0]).forEach((v) => {
+        if (!v || v.startsWith(config.ingnore_prefix)) return;
+        rows.push({
+            name: v,
+            comment: config.no_comment ? undefined : res[0][v],
+            type: res[1][v],
+            len: res[2][v],
         });
+        if (res[1][v].indexOf(",ai") >= 0 || res[1][v].indexOf(",auto_increment") >= 0) {
+            ignoreID = v;
+        }
     });
+    for (var i = 3; i < res.length; i++) {
+        datas.push(res[i]);
+    }
+
+    var res0 = await this.createTable(connect, callback, tableName, rows, config.no_comment ? undefined : comment);
+    callback && callback(null, null, res0);
+
+    if (datas.length > 0) {
+        if (config.model == "update") {
+            var res1 = this.tableNames;
+            if (res1 && res1.indexOf(tableName) >= 0) {
+                return res1;
+            } else {
+                return await this.insertData(connect, tableName, datas, callback, ignoreID, types);
+            }
+        } else {
+            return await this.insertData(connect, tableName, datas, callback, ignoreID, types);
+        }
+    } else {
+        return res0;
+    }
+
 }
 
 
 /**
  * 从数据库获取所有表
  */
-DB.prototype.getTablesFromDB = function (connect) {
+DB.prototype.getTablesFromDB = async function (connect) {
+    if (!connect) return [];
+    var results = await this.query(connect, "show tables");
+    var tables = [];
+    if (results && results.length > 0) {
+        var key = Object.keys(results[0])[0];
+        results.forEach(row => {
+            tables.push(row[key]);
+        });
+    }
+    return tables;
+}
+
+/**
+ * 获取表信息
+ */
+DB.prototype.getColumns = async function (connect, database, tableName) {
+    if (!connect) return [];
+    var sql = "select `COLUMN_NAME`, `DATA_TYPE`, `COLUMN_COMMENT`,`COLUMN_KEY`,`COLUMN_TYPE`,`IS_NULLABLE`,`EXTRA` from information_schema.COLUMNS where table_name = '{0}' and table_schema = '{1}'";
+    return await this.query(connect, sql.format(tableName, database));
+}
+
+/**
+ * 查询
+ */
+DB.prototype = function query(connect, sql) {
     return new Promise((resolve, reject) => {
-        if (!connect) {
-            resolve([]);
-        }
-        connect.query("show tables", (err, result, fields) => {
+        connect.query(sql, (err, results) => {
             if (err) {
                 reject(err);
             } else {
-                var tables = [];
-                if (result || result.length > 0) {
-                    result.forEach(row => {
-                        tables.push(row[fields[0].name]);
-                    });
-                }
-                resolve(tables);
+                resolve(results);
             }
         });
     });
