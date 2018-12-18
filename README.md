@@ -1,4 +1,3 @@
-
 ### Useage：
 
 ## Install
@@ -48,18 +47,54 @@ excel2mysql({
 
 ```
 
+use `await`:
+
+```
+var excel2mysql = require("../");
+var fs = require("fs");
+var excelPath = "./sample.xls";
+
+(async function(excelPath) {
+  var start = new Date().getTime();
+  await excel2mysql(
+    {
+      input: excelPath,
+      model: "create",
+      mysql: {
+        host: "127.0.0.1",
+        user: "work",
+        password: "work",
+        port: "3306",
+        database: "test"
+      }
+    },
+    function(err, sql, result) {
+      err && console.error(err);
+      sql && console.log(sql.sql);
+      // result && console.log(result);
+    }
+  );
+
+  console.log(
+    "end. use time: " + (new Date().getTime() - start) / 1000 + " s."
+  );
+})(excelPath);
+
+```
+
 ### param
 
 - mysql: config for mysql
-- model: 
+- model:
+
 ```
 delete: just drop table
 update: just add new table , and import data to a new table, if no config for mysql, the model eqaul "create"
 create: drop all table, then create tables and import data to tables
 ```
+
 - no_comment: true or false(default), if ture, threre is no comment for sql of creating tables
 - ingnore_prefix: `-`(default), if the name field starts with that, it will be ignored
-
 
 ### excel fromat
 
@@ -70,11 +105,10 @@ config for create table and import data to table
 
 ![](./sample/imgs/2.png)
 
-
 data type(row:3):`[type],[pk,ai,nn,uq,(0)]...`
 
 ```
-(0) = default 0 
+(0) = default 0
 ai = auto_increment
 nn = not null
 uq = unique
@@ -96,6 +130,7 @@ npm install excel2mysql -g
 ```
 
 ### Use as Command
+
 ```
 excel2mysql -o ./db.sql -i ./sample/sample.xls -S 100
 
@@ -130,6 +165,4 @@ Options:
 
 [简书地址](https://www.jianshu.com/p/b1c4496638a2)
 
-[github地址](https://github.com/xiaoyifan6/excel2mysql)
-
-
+[github 地址](https://github.com/xiaoyifan6/excel2mysql)
