@@ -123,6 +123,8 @@ DB.prototype.run = function(config, connect, callback) {
 
       var arr = [];
       var names = [];
+
+      var comm = {};
       res.forEach(line => {
         var tableName =
           line[1] ||
@@ -136,15 +138,43 @@ DB.prototype.run = function(config, connect, callback) {
           line["注释"] ||
           line["中文名"] ||
           line["说明"];
-        if (config.model != "update") {
+        if (config.model != "update" && config.model != "diff") {
           //删除表
           arr.push(this.dropTable(connect, tableName, callback));
+        } else if (config.model == "diff") {
+          // excel 表格中
+          if (this.tableNames.indexOf(tableName) >= 0) {
+            comm[tableName] = 1;
+          } else {
+            var result = {
+              type: "table",
+              diff: "A",
+              mysql: "",
+              excel: tableName
+            };
+            callback && callback(null, null, result);
+          }
         }
+
         names.push({
           name: tableName,
           comment: comment
         });
       });
+
+      if (config.model == "diff") {
+        this.tableNames.forEach(line => {
+          if (!comm[line]) {
+            var result = {
+              type: "table",
+              diff: "A",
+              mysql: line,
+              excel: ""
+            };
+            callback && callback(null, null, result);
+          }
+        });
+      }
 
       if (arr.length == 0) {
         if (config.model == "delete") {
@@ -516,19 +546,6 @@ DB.prototype.createTableBySheet = function(
                       reject(err0);
                     });
                 }
-                // this.getTablesFromDB(connect).then(res1 => {
-                //     if (res1 && res1.indexOf(tableName) >= 0) {
-                //         resolve(res1);
-                //     } else {
-                //         this.insertData(connect, tableName, datas, callback).then(res0 => {
-                //             resolve(res0);
-                //         }).catch(err0 => {
-                //             reject(err0);
-                //         });
-                //     }
-                // }).catch(err1 => {
-                //     reject(err1);
-                // });
               } else {
                 this.insertData(
                   connect,
@@ -545,7 +562,6 @@ DB.prototype.createTableBySheet = function(
                     reject(err0);
                   });
               }
-              // resolve(res);
             } else {
               resolve(res);
             }
@@ -579,6 +595,28 @@ DB.prototype.getTablesFromDB = function(connect) {
           });
         }
         resolve(tables);
+      }
+    });
+  });
+};
+
+/**
+ * 获取表信息
+ */
+DB.prototype.getColumns = function(connect, database, tableName) {
+  return new Promise((resolve, reject) => {
+    if (!connect) {
+      resolve([]);
+    }
+
+    var sql =
+      "select `COLUMN_NAME`, `DATA_TYPE`, `COLUMN_COMMENT`,`COLUMN_KEY`,`COLUMN_TYPE`,`IS_NULLABLE`,`EXTRA` from information_schema.COLUMNS where table_name = '{0}' and table_schema = '{1}'";
+
+    connect.query(sql.format(tableName, database), (err, result, fields) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
       }
     });
   });
