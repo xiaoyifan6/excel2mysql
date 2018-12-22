@@ -6,7 +6,7 @@ const fs = require("fs");
 var opt = require("node-getopt")
   .create([
     ["i", "input=ARG", "excel-file Path"],
-    ["o", "output=ARG", "sql-file path"],
+    ["o", "output=ARG", "sql-file path or json-file path"],
     ["", "no-comment", "no comment for table and columns in sql"],
     ["", "show-sql", "print sql to console"],
     [
@@ -21,7 +21,7 @@ var opt = require("node-getopt")
     ],
     ["", "help", "show Help"],
     ["v", "version", "show version"],
-    ["m", "model=ARG", "model: create(default), delete, update"],
+    ["m", "model=ARG", "model: create(default), delete, update, diff"],
 
     ["P", "port=ARG", "mysql:port default: 3306"],
     ["h", "host=ARG", "mysql:host default: 127.0.0.1"],
@@ -75,14 +75,18 @@ try {
       if (state.isDirectory()) {
         //如果是已存在的路径 就加上sql文件
         // output += "/" + (config.database || "db") + ".sql";
-        output = path.join(output, (config.database || "db") + ".sql");
+        if (config.model === "diff") {
+          output = path.join(output, (config.database || "db") + ".json");
+        } else {
+          output = path.join(output, (config.database || "db") + ".sql");
+        }
       } else {
         fs.unlinkSync(output);
       }
-      fs.writeFileSync(output, "# sql\r\n");
+      fs.writeFileSync(output, config.model === "diff" ? "" : "# sql\r\n");
     } else {
       //直接写入 如果异常，则说明不是文件或者文件路径不存在
-      fs.writeFileSync(output, "# sql\r\n");
+      fs.writeFileSync(output, config.model === "diff" ? "" : "# sql\r\n");
     }
   }
 } catch (e) {
@@ -90,25 +94,41 @@ try {
   output = "";
 }
 
-excel_mysql(config, (err, sql, result) => {
-  err && console.error(err);
-  if (result && typeof result == "string") {
-    console.log(result);
-  }
-  if (sql) {
-    if (showSql) {
-      var sqlStr = "[" + sql.type + "] - " + sql.sql;
-      if (sqlLimit) {
-        console.log(
-          sqlStr.length > sqlLimit ? sqlStr.substr(0, sqlLimit) + "..." : sqlStr
-        );
-      } else {
-        console.log(sqlStr);
+(async () => {
+  var jsonData = [];
+  await excel_mysql(config, (err, sql, result) => {
+    err && console.error(err);
+    if (result && typeof result == "string") {
+      console.log(result);
+    } else if (result && result.type == "diff" && result.data) {
+      if (output) {
+        var diffStr =
+          "#[ diff ] \r\n" + JSON.stringify(result.data) + ";\r\n\r\n";
+        console.log(diffStr);
+        jsonData = jsonData.concat(result.data);
       }
     }
-    if (output) {
-      var sqlStr = "#[" + sql.type + "] \r\n" + sql.sql + ";\r\n\r\n";
-      fs.appendFileSync(output, sqlStr);
+
+    if (sql) {
+      if (showSql) {
+        var sqlStr = "[" + sql.type + "] - " + sql.sql;
+        if (sqlLimit) {
+          console.log(
+            sqlStr.length > sqlLimit
+              ? sqlStr.substr(0, sqlLimit) + "..."
+              : sqlStr
+          );
+        } else {
+          console.log(sqlStr);
+        }
+      }
+      if (output) {
+        var sqlStr = "#[" + sql.type + "] \r\n" + sql.sql + ";\r\n\r\n";
+        fs.appendFileSync(output, sqlStr);
+      }
     }
+  });
+  if (config.model === "diff") {
+    fs.appendFileSync(output, JSON.stringify(jsonData, null, "\t"));
   }
-});
+})();

@@ -10,7 +10,7 @@ if (!fs.existsSync(excelPath)) {
   await excel2mysql(
     {
       input: excelPath,
-      model: "create",
+      model: "diff",
       mysql: {
         host: "127.0.0.1",
         user: "work",
@@ -21,8 +21,8 @@ if (!fs.existsSync(excelPath)) {
     },
     function(err, sql, result) {
       err && console.error(err);
-      sql && console.log(sql.sql);
-      // result && console.log(result);
+      // sql && console.log(sql.sql);
+      result && result.type && console.log(JSON.stringify(result.data) + " \n");
     }
   );
 

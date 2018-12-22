@@ -45,6 +45,23 @@ excel2mysql({
     sql && console.log(sql.sql);
 });
 
+# or
+
+excel2mysql({
+    input: excelPath,
+    model: 'diff',
+    mysql: {
+        host: '127.0.0.1',
+        user: 'work',
+        password: 'work',
+        port: '3306',
+        database: 'test'
+    }
+}, function (err, sql, result) {
+    err && console.error(err);
+    result && result.type === "diff" && console.log("#diff#: ",JSON.stringify(result.data));
+});
+
 ```
 
 use `await`:
@@ -91,6 +108,7 @@ var excelPath = "./sample.xls";
 delete: just drop table
 update: just add new table , and import data to a new table, if no config for mysql, the model eqaul "create"
 create: drop all table, then create tables and import data to tables
+diff: compare excel and mysql , and you can get json data from "result"
 ```
 
 - no_comment: true or false(default), if ture, threre is no comment for sql of creating tables
@@ -139,6 +157,16 @@ excel2mysql -o ./db.sql -i ./sample/sample.xls -S 100
 excel2mysql -o ./db.sql -i ./sample/sample.xls -S 100 -uwork -pwork -dtest
 ```
 
+### Compare excel and mysql
+
+```
+excel2mysql -m diff  -d test -i ./sample.xls -o ./db.json -S 100
+```
+
+\$TABLE_FILEDS: fields of table
+
+key: table name/table field/fields of table
+
 ### Param
 
 ```
@@ -146,14 +174,14 @@ $: excel2mysql --help
 
 Options:
   -i, --input=ARG          excel-file Path
-  -o, --output=ARG         sql-file path
+  -o, --output=ARG         sql-file path or json-file path
       --no-comment         no comment for table and columns in sql
       --show-sql           print sql to console
   -S                       a number, print sql to console, and the string.length <= this number
       --ingnore-prefix=ARG if the name field starts with that, it will be ignored
       --help               show Help
   -v, --version            show version
-  -m, --model=ARG          model: create(default), delete, update
+  -m, --model=ARG          model: create(default), delete, update, diff
   -P, --port=ARG           mysql:port default: 3306
   -h, --host=ARG           mysql:host default: 127.0.0.1
   -p, --password=ARG       mysql:password default: root

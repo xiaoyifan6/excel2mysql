@@ -1,0 +1,258 @@
+[
+  {
+    "type": "table",
+    "tableName": "user",
+    "mysql": [
+      {
+        "COLUMN_NAME": "age",
+        "DATA_TYPE": "int",
+        "COLUMN_COMMENT": "年龄",
+        "COLUMN_KEY": "",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "EXTRA": ""
+      },
+      {
+        "COLUMN_NAME": "gender",
+        "DATA_TYPE": "tinyint",
+        "COLUMN_COMMENT": "性别",
+        "COLUMN_KEY": "",
+        "COLUMN_TYPE": "tinyint(4)",
+        "IS_NULLABLE": "YES",
+        "EXTRA": ""
+      },
+      {
+        "COLUMN_NAME": "id",
+        "DATA_TYPE": "int",
+        "COLUMN_COMMENT": "学生id",
+        "COLUMN_KEY": "PRI",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "EXTRA": "auto_increment"
+      },
+      {
+        "COLUMN_NAME": "name",
+        "DATA_TYPE": "varchar",
+        "COLUMN_COMMENT": "学生姓名",
+        "COLUMN_KEY": "",
+        "COLUMN_TYPE": "varchar(20)",
+        "IS_NULLABLE": "YES",
+        "EXTRA": ""
+      }
+    ],
+    "excel": {
+      "rows": [
+        {
+          "name": "id",
+          "comment": "学生id",
+          "type": "int,pk,ai",
+          "len": "11"
+        },
+        {
+          "name": "name",
+          "comment": "学生姓名",
+          "type": "varchar,(abc)",
+          "len": "20"
+        },
+        {
+          "name": "age",
+          "comment": "年龄",
+          "type": "int",
+          "len": "11"
+        },
+        {
+          "name": "gender",
+          "comment": "性别",
+          "type": "tinyint",
+          "len": ""
+        }
+      ],
+      "data": [
+        {
+          "_desc": "数据",
+          "id": "",
+          "name": "tom",
+          "age": "11",
+          "gender": "1"
+        },
+        {
+          "_desc": "",
+          "id": "",
+          "name": "asd123@aa.com",
+          "age": "12",
+          "gender": "0"
+        },
+        {
+          "_desc": "",
+          "id": "",
+          "name": "",
+          "age": "13",
+          "gender": "1"
+        },
+        {
+          "_desc": "",
+          "id": "",
+          "name": "12",
+          "age": "",
+          "gender": "0"
+        }
+      ],
+      "ignoreID": "id",
+      "types": {
+        "_desc": "类型，[约束...]",
+        "id": "int,pk,ai",
+        "name": "varchar,(abc)",
+        "age": "Int",
+        "gender": "tinyint"
+      }
+    }
+  },
+  {
+    "type": "table",
+    "tableName": "teacher",
+    "mysql": [
+      {
+        "COLUMN_NAME": "id",
+        "DATA_TYPE": "int",
+        "COLUMN_COMMENT": "教师id",
+        "COLUMN_KEY": "PRI",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "EXTRA": "auto_increment"
+      },
+      {
+        "COLUMN_NAME": "name",
+        "DATA_TYPE": "varchar",
+        "COLUMN_COMMENT": "姓名",
+        "COLUMN_KEY": "",
+        "COLUMN_TYPE": "varchar(20)",
+        "IS_NULLABLE": "YES",
+        "EXTRA": ""
+      },
+      {
+        "COLUMN_NAME": "subject",
+        "DATA_TYPE": "varchar",
+        "COLUMN_COMMENT": "教授科目",
+        "COLUMN_KEY": "",
+        "COLUMN_TYPE": "varchar(20)",
+        "IS_NULLABLE": "YES",
+        "EXTRA": ""
+      }
+    ],
+    "excel": {
+      "rows": [
+        {
+          "name": "id",
+          "comment": "教师id",
+          "type": "int,pk,ai",
+          "len": "11"
+        },
+        {
+          "name": "name",
+          "comment": "姓名",
+          "type": "varchar",
+          "len": "20"
+        },
+        {
+          "name": "subject",
+          "comment": "教授科目",
+          "type": "varchar",
+          "len": "20"
+        }
+      ],
+      "data": [
+        {
+          "_desc": "数据",
+          "id": "",
+          "name": "are",
+          "subject": "math"
+        }
+      ],
+      "ignoreID": "id",
+      "types": {
+        "_desc": "类型，[约束...]",
+        "id": "int,pk,ai",
+        "name": "varchar",
+        "subject": "varchar"
+      }
+    }
+  },
+  {
+    "type": "table",
+    "tableName": "subject",
+    "mysql": [
+      {
+        "COLUMN_NAME": "desc",
+        "DATA_TYPE": "varchar",
+        "COLUMN_COMMENT": "描述",
+        "COLUMN_KEY": "",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "EXTRA": ""
+      },
+      {
+        "COLUMN_NAME": "id",
+        "DATA_TYPE": "int",
+        "COLUMN_COMMENT": "科目id",
+        "COLUMN_KEY": "PRI",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "EXTRA": ""
+      },
+      {
+        "COLUMN_NAME": "name",
+        "DATA_TYPE": "varchar",
+        "COLUMN_COMMENT": "名称",
+        "COLUMN_KEY": "",
+        "COLUMN_TYPE": "varchar(20)",
+        "IS_NULLABLE": "YES",
+        "EXTRA": ""
+      }
+    ],
+    "excel": {
+      "rows": [
+        {
+          "name": "desc",
+          "comment": "描述",
+          "type": "varchar",
+          "len": "255"
+        },
+        {
+          "name": "id",
+          "comment": "科目id",
+          "type": "int,pk",
+          "len": "11"
+        },
+        {
+          "name": "name",
+          "comment": "名称",
+          "type": "varchar",
+          "len": "20"
+        }
+      ],
+      "data": [
+        {
+          "desc": "数学",
+          "id": "1001",
+          "name": "math"
+        },
+        {
+          "desc": "物理",
+          "id": "1002",
+          "name": "physics"
+        },
+        {
+          "desc": "历史",
+          "id": "1003",
+          "name": "history"
+        }
+      ],
+      "ignoreID": "",
+      "types": {
+        "desc": "varchar",
+        "id": "int,pk",
+        "name": "varchar"
+      }
+    }
+  }
+]

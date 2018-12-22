@@ -2,6 +2,7 @@
 var mysql = require("mysql");
 var exceltojson = require("xlsx-to-json-lc");
 const fs = require("fs");
+const changesets = require("diff-json");
 
 exports = module.exports = EXCEL_Mysql;
 
@@ -12,6 +13,28 @@ String.prototype.format = function() {
   }
   return a;
 };
+
+function isArray(obj) {
+  if (Array.isArray) {
+    return Array.isArray(obj);
+  } else {
+    return Object.prototype.toString.call(obj) === "[object Array]";
+  }
+}
+
+function replaceKeyName(data, map) {
+  if (!data || !map) return;
+  if (typeof data === "object") {
+    for (var key in data) {
+      replaceKeyName(data[key], map);
+    }
+    if (!isArray(data)) {
+      for (var key in map) {
+        data[key] && (data[map[key]] = data[key]) && delete data[key];
+      }
+    }
+  }
+}
 
 function EXCEL_Mysql(config, callback) {
   return new Promise((resolve, reject) => {
@@ -85,23 +108,24 @@ DB.prototype.getExcelData = function(excelPath, sheepName) {
       reject("You miss a input file!");
       return;
     }
-    exceltojson &&
-      exceltojson(
-        {
-          input: excelPath, //要转换的excel文件，如"/Users/chenyihui/文件/matt/1_2.xlsx"
-          output: null,
-          // output: tmpFile,//"if you want output to be stored in a file", //输出的json文件，可以不写。如"./yeap.json"
-          sheet: sheepName, // 如果有多个表单的话，制定一个表单（excel下面那些标签），可以忽略
-          lowerCaseHeaders: true //所有英文表头转成大写，可以忽略
-        },
-        function(err, result) {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(result);
+    exceltojson
+      ? exceltojson(
+          {
+            input: excelPath, //要转换的excel文件，如"/Users/chenyihui/文件/matt/1_2.xlsx"
+            output: null,
+            // output: tmpFile,//"if you want output to be stored in a file", //输出的json文件，可以不写。如"./yeap.json"
+            sheet: sheepName, // 如果有多个表单的话，制定一个表单（excel下面那些标签），可以忽略
+            lowerCaseHeaders: true //所有英文表头转成大写，可以忽略
+          },
+          function(err, result) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(result);
+            }
           }
-        }
-      );
+        )
+      : reject("not install exceltojson");
   });
 };
 
@@ -114,6 +138,12 @@ DB.prototype.println = function(sql, type, callback) {
 };
 
 DB.prototype.run = function(config, connect, callback) {
+  var pp = tableName => {
+    return new Promise(resolve => {
+      resolve(tableName);
+    });
+  };
+
   this.getExcelData(config.input, null)
     .then(res => {
       if (!res) {
@@ -123,6 +153,7 @@ DB.prototype.run = function(config, connect, callback) {
 
       var arr = [];
       var names = [];
+      var tarr = [];
 
       var comm = {};
       res.forEach(line => {
@@ -145,14 +176,11 @@ DB.prototype.run = function(config, connect, callback) {
           // excel 表格中
           if (this.tableNames.indexOf(tableName) >= 0) {
             comm[tableName] = 1;
+            tarr.push(
+              this.getColumns(connect, config.mysql.database, tableName)
+            );
           } else {
-            var result = {
-              type: "table",
-              diff: "A",
-              mysql: "",
-              excel: tableName
-            };
-            callback && callback(null, null, result);
+            tarr.push(pp(tableName));
           }
         }
 
@@ -165,19 +193,36 @@ DB.prototype.run = function(config, connect, callback) {
       if (config.model == "diff") {
         this.tableNames.forEach(line => {
           if (!comm[line]) {
-            var result = {
-              type: "table",
-              diff: "A",
-              mysql: line,
-              excel: ""
-            };
-            callback && callback(null, null, result);
+            tarr.push(this.getColumns(connect, config.mysql.database, line));
           }
         });
       }
 
       if (arr.length == 0) {
-        if (config.model == "delete") {
+        if (config.model == "diff") {
+          // this.closeConn(connect);
+          var arr0 = [];
+          Promise.all(tarr)
+            .then(resArr => {
+              resArr.forEach(res => {
+                arr0.push(this.diffTable(callback, config, res));
+              });
+
+              Promise.all(arr0)
+                .then(resArr0 => {
+                  callback && callback(null, null, resArr0);
+                  this.closeConn(connect);
+                })
+                .catch(err => {
+                  callback && callback(err);
+                  this.closeConn(connect);
+                });
+            })
+            .catch(err => {
+              callback && callback(err);
+              this.closeConn(connect);
+            });
+        } else if (config.model == "delete") {
           this.closeConn(connect);
         } else {
           var arr0 = [];
@@ -255,6 +300,212 @@ DB.prototype.run = function(config, connect, callback) {
 };
 
 /**
+ * 转化数据
+ */
+DB.prototype.transferDiff = function(callback, diffData) {
+  var excelData = {};
+  var mysqlData = {};
+
+  function genMysqlField(fields, arr) {
+    if (!arr) return;
+    arr.forEach(item => {
+      let field = {};
+      field.name = item["COLUMN_NAME"];
+      let types = [];
+
+      types.push(
+        item["COLUMN_TYPE"]
+          .replace(" unsigned", "")
+          .replace(" zerofill", "")
+          .replace(" binary", "")
+      );
+      if (item["COLUMN_TYPE"].includes("zerofill")) {
+        types.push("zf");
+      }
+      if (item["COLUMN_TYPE"].includes("unsigned")) {
+        types.push("un");
+      }
+      if (item["COLUMN_TYPE"].includes("binary")) {
+        types.push("bin");
+      }
+      if (item["EXTRA"]) {
+        if (item["EXTRA"].includes("auto_increment")) {
+          types.push("ai");
+        }
+      }
+
+      if (item["COLUMN_KEY"] === "PRI") {
+        types.push("pk");
+      }
+
+      if (item["COLUMN_KEY"] === "UNI") {
+        types.push("uq");
+      }
+
+      if (item["IS_NULLABLE"] === "NO") {
+        types.push("nn");
+      }
+
+      if (item["COLUMN_DEFAULT"]) {
+        types.push("(" + item["COLUMN_DEFAULT"] + ")");
+      }
+      if (types.length > 0) {
+        types = types.concat(types.splice(1, types.length - 1).sort());
+      }
+      field.types = types.join(",");
+      field.comment = item["COLUMN_COMMENT"];
+      fields[field.name] = field;
+    });
+  }
+
+  function genExcelField(fields, arr) {
+    if (!arr) return;
+    arr.forEach(item => {
+      let field = {};
+      field.name = item.name;
+      let types = [];
+      if (item.type) {
+        var type = item.type
+          .toLowerCase()
+          .trim()
+          .replace(/,default[\s]+([^\s,]*)/, ",default '$1'")
+          .replace(",primary key", ",pk")
+
+          .replace(",zerofill", ",zf")
+          .replace(",unsigned", ",un")
+          .replace(",binary", ",bin")
+
+          .replace(",not null", ",nn")
+          .replace(",unique", ",uq")
+          .replace(",auto_increment", ",ai")
+          .replace(",string", ",varchar")
+          .replace(",boolean", ",tinyint")
+
+          .replace(",(null)", "")
+          .replace(/,default '(.*)'/, ",($1)");
+
+        types = type.split(",");
+        if (types[0]) {
+          if (item.len) {
+            types[0] += "(" + item.len + ")";
+          } else if (types[0] === "tinyint") {
+            types[0] += "(4)";
+          } else if (types[0] === "int") {
+            types[0] += "(11)";
+          } else if (types[0] === "varchar") {
+            types[0] += "(255)";
+          }
+        }
+
+        if (item.type.includes(",pk") && !item.type.includes(",nn")) {
+          types.push("nn");
+        }
+
+        if (item.type.includes(",pk") && item.type.includes(",uq")) {
+          types.splice(types.indexOf("uq"), 1);
+        }
+      }
+
+      if (types.length > 0) {
+        types = types.concat(types.splice(1, types.length - 1).sort());
+      }
+      field.types = types.join(",");
+      field.comment = item.comment;
+      // field.data = item.data;
+      fields[field.name] = field;
+    });
+  }
+
+  var item = diffData;
+  if (item.mysql) {
+    var table = {};
+    table.type = "table";
+    table.name = item.tableName;
+    table["$TABLE_FILEDS"] = {};
+
+    genMysqlField(table["$TABLE_FILEDS"], item.mysql);
+
+    mysqlData[item.tableName] = table;
+  }
+  if (item.excel) {
+    var table = {};
+    table.type = "table";
+    table.name = item.tableName;
+    table["$TABLE_FILEDS"] = {};
+    genExcelField(table["$TABLE_FILEDS"], item.excel.rows);
+    excelData[item.tableName] = table;
+  }
+
+  diffs = changesets.diff(mysqlData, excelData, {});
+  replaceKeyName(diffs, { value: "excel", oldValue: "mysql" });
+  // todo 编写转化函数
+  callback &&
+    diffs &&
+    diffs.length > 0 &&
+    callback(null, null, {
+      type: "diff",
+      data: diffs
+    });
+};
+
+/**
+ *  表格对比
+ */
+DB.prototype.diffTable = function(callback, config, columns) {
+  return new Promise((resolve, reject) => {
+    if (typeof columns === "string") {
+      // Excel 表格中有的，mysql表格中没有的
+      this.getTableDataFromSheet(config, columns)
+        .then(res => {
+          var data = {
+            type: "table",
+            tableName: columns,
+            mysql: "",
+            excel: res
+          };
+          // callback && callback(null, null, data);
+          this.transferDiff(callback, data);
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
+      return;
+    } else if (columns.tableName) {
+      let tableNames = columns.tableName;
+      if (this.tableNames.indexOf(columns.tableName) >= 0) {
+        this.getTableDataFromSheet(config, tableNames)
+          .then(res => {
+            var data = {
+              type: "table",
+              tableName: tableNames,
+              mysql: columns.result,
+              excel: res
+            };
+            // callback && callback(null, null, data);
+            this.transferDiff(callback, data);
+            resolve();
+          })
+          .catch(err => {
+            reject(err);
+          });
+        return;
+      } else {
+        var data = {
+          type: "table",
+          tableName: tableNames,
+          mysql: columns.result,
+          excel: ""
+        };
+        // callback && callback(null, null, data);
+        this.transferDiff(callback, data);
+      }
+    }
+    resolve();
+  });
+};
+
+/**
  * 创建表
  * @param {表名} tableName
  * @param {*} rows
@@ -280,21 +531,22 @@ DB.prototype.createTable = function(
       var types = type
         .toLowerCase()
         .trim()
-        .replace(/,default[\s]+([^\s,]*)/, ",default '$1'")
+        .replace(/,default[\s]+([^\s,]*)/, ",default '$1' ")
         .replace(",pk", ",primary key ")
-        .replace(",nn", ",not null ")
-        .replace(",uk", ",unique")
-        .replace(",uq", ",unique")
-        .replace(",up", ",unique")
-        .replace(",ai", ",auto_increment")
 
-        .replace(",zf", ",zerofill")
-        .replace(",un", ",unsigned")
-        .replace(",bin", ",binary")
+        .replace(",zf", ",zerofill ")
+        .replace(",un", ",unsigned ")
+        .replace(",bin", ",binary ")
+
+        .replace(",nn", ",not null ")
+        .replace(",uk", ",unique ")
+        .replace(",uq", ",unique ")
+        .replace(",up", ",unique ")
+        .replace(",ai", ",auto_increment ")
 
         .replace(",(null)", "")
 
-        .replace(/,[(](.*)[)]/, ",default '$1'")
+        .replace(/,[(](.*)[)]/, ",default '$1' ")
         .split(",");
 
       switch (types[0].toLowerCase()) {
@@ -480,13 +732,7 @@ DB.prototype.insertData = function(
   });
 };
 
-DB.prototype.createTableBySheet = function(
-  connect,
-  callback,
-  config,
-  tableName,
-  comment
-) {
+DB.prototype.getTableDataFromSheet = function(config, tableName) {
   return new Promise((resolve, reject) => {
     this.getExcelData(config.input, tableName)
       .then(res => {
@@ -516,6 +762,34 @@ DB.prototype.createTableBySheet = function(
         for (var i = 3; i < res.length; i++) {
           datas.push(res[i]);
         }
+        var data = {
+          rows: rows,
+          data: datas,
+          ignoreID: ignoreID,
+          types: types
+        };
+        resolve(data);
+      })
+      .catch(err => {
+        reject(err);
+      });
+  });
+};
+
+DB.prototype.createTableBySheet = function(
+  connect,
+  callback,
+  config,
+  tableName,
+  comment
+) {
+  return new Promise((resolve, reject) => {
+    this.getTableDataFromSheet(config, tableName)
+      .then(res => {
+        var rows = res.rows;
+        var datas = res.data;
+        var ignoreID = res.ignoreID;
+        var types = res.types;
         this.createTable(
           connect,
           callback,
@@ -573,6 +847,91 @@ DB.prototype.createTableBySheet = function(
       .catch(err => {
         reject(err);
       });
+    // this.getExcelData(config.input, tableName)
+    //   .then(res => {
+    //     if (!res || res.length == 0) {
+    //       reject("no such database:" + tableName);
+    //       return;
+    //     }
+    //     var rows = [];
+    //     var datas = [];
+    //     var ignoreID = "";
+    //     var types = res[1];
+    //     Object.keys(res[0]).forEach(v => {
+    //       if (!v || v.startsWith(config.ingnore_prefix)) return;
+    //       rows.push({
+    //         name: v,
+    //         comment: config.no_comment ? undefined : res[0][v],
+    //         type: res[1][v],
+    //         len: res[2][v]
+    //       });
+    //       if (
+    //         res[1][v].indexOf(",ai") >= 0 ||
+    //         res[1][v].indexOf(",auto_increment") >= 0
+    //       ) {
+    //         ignoreID = v;
+    //       }
+    //     });
+    //     for (var i = 3; i < res.length; i++) {
+    //       datas.push(res[i]);
+    //     }
+    //     this.createTable(
+    //       connect,
+    //       callback,
+    //       tableName,
+    //       rows,
+    //       config.no_comment ? undefined : comment
+    //     )
+    //       .then(res => {
+    //         callback && callback(null, null, res);
+    //         if (datas.length > 0) {
+    //           if (config.model == "update") {
+    //             var res1 = this.tableNames;
+    //             if (res1 && res1.indexOf(tableName) >= 0) {
+    //               resolve(res1);
+    //             } else {
+    //               this.insertData(
+    //                 connect,
+    //                 tableName,
+    //                 datas,
+    //                 callback,
+    //                 ignoreID,
+    //                 types
+    //               )
+    //                 .then(res0 => {
+    //                   resolve(res0);
+    //                 })
+    //                 .catch(err0 => {
+    //                   reject(err0);
+    //                 });
+    //             }
+    //           } else {
+    //             this.insertData(
+    //               connect,
+    //               tableName,
+    //               datas,
+    //               callback,
+    //               ignoreID,
+    //               types
+    //             )
+    //               .then(res0 => {
+    //                 resolve(res0);
+    //               })
+    //               .catch(err0 => {
+    //                 reject(err0);
+    //               });
+    //           }
+    //         } else {
+    //           resolve(res);
+    //         }
+    //       })
+    //       .catch(err => {
+    //         reject(err);
+    //       });
+    //   })
+    //   .catch(err => {
+    //     reject(err);
+    //   });
   });
 };
 
@@ -610,13 +969,16 @@ DB.prototype.getColumns = function(connect, database, tableName) {
     }
 
     var sql =
-      "select `COLUMN_NAME`, `DATA_TYPE`, `COLUMN_COMMENT`,`COLUMN_KEY`,`COLUMN_TYPE`,`IS_NULLABLE`,`EXTRA` from information_schema.COLUMNS where table_name = '{0}' and table_schema = '{1}'";
+      "select `COLUMN_NAME`, `DATA_TYPE`, `COLUMN_COMMENT`,`COLUMN_KEY`,`COLUMN_TYPE`,`IS_NULLABLE`,`EXTRA`,`COLUMN_DEFAULT` from information_schema.COLUMNS where table_name = '{0}' and table_schema = '{1}'";
 
     connect.query(sql.format(tableName, database), (err, result, fields) => {
       if (err) {
         reject(err);
       } else {
-        resolve(result);
+        resolve({
+          tableName: tableName,
+          result: result
+        });
       }
     });
   });
