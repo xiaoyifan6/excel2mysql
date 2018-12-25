@@ -17,7 +17,7 @@ var excelPath = "./sample.xls";
 
 excel2mysql({
     input: excelPath,
-    model: 'create'
+    mode: 'create'
 }, function (err, sql, result) {
     err && console.error(err);
     sql && console.log(sql.sql);
@@ -32,7 +32,7 @@ var excel2mysql = require('excel2mysql');
 
 excel2mysql({
     input: excelPath,
-    model: 'create',
+    mode: 'create',
     mysql: {
         host: '127.0.0.1',
         user: 'work',
@@ -49,7 +49,7 @@ excel2mysql({
 
 excel2mysql({
     input: excelPath,
-    model: 'diff',
+    mode: 'diff',
     mysql: {
         host: '127.0.0.1',
         user: 'work',
@@ -76,7 +76,7 @@ var excelPath = "./sample.xls";
   await excel2mysql(
     {
       input: excelPath,
-      model: "create",
+      mode: "create",
       mysql: {
         host: "127.0.0.1",
         user: "work",
@@ -101,12 +101,14 @@ var excelPath = "./sample.xls";
 
 ### param
 
+> Note: `model` is deprecated, please use `mode`
+
 - mysql: config for mysql
-- model:
+- mode:
 
 ```
 delete: just drop table
-update: just add new table , and import data to a new table, if no config for mysql, the model eqaul "create"
+update: just add new table , and import data to a new table, if no config for mysql, the mode eqaul "create"
 create: drop all table, then create tables and import data to tables
 diff: compare excel and mysql , and you can get json data from "result"
 ```
@@ -164,16 +166,19 @@ excel2mysql -c  ./sample/config.json -S 100
 
 # or
 
-excel2mysql -c  ./sample/default.config.js -S 100
+excel2mysql -c  ./sample/default.config.js -S 100 -m diff
 
 ```
+
+> Node: If a configuration file is used, the relative path will be based on the directory of the configuration file.
+> Configuration file priority is higher than command assignment.
 
 ./sample/default.config.js:
 
 ```
 module.exports = {
   input: "./sample.xls",
-  mode: "diff",
+  // mode: "diff",
   output: "./",
   mysql: {
     host: "127.0.0.1",

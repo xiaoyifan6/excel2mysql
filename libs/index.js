@@ -68,7 +68,7 @@ function DB(config, callback, nomysql, wait_cbk) {
     /**
      * create delete update
      */
-    config.model = config.mode || config.model || "create";
+    config.mode = config.mode || config.model || "create";
     config.ingnore_prefix = config.ingnore_prefix || "_";
 
     this.tableNames = [];
@@ -169,10 +169,10 @@ DB.prototype.run = function(config, connect, callback) {
           line["注释"] ||
           line["中文名"] ||
           line["说明"];
-        if (config.model != "update" && config.model != "diff") {
+        if (config.mode != "update" && config.mode != "diff") {
           //删除表
           arr.push(this.dropTable(connect, tableName, callback));
-        } else if (config.model == "diff") {
+        } else if (config.mode == "diff") {
           // excel 表格中
           if (this.tableNames.indexOf(tableName) >= 0) {
             comm[tableName] = 1;
@@ -190,7 +190,7 @@ DB.prototype.run = function(config, connect, callback) {
         });
       });
 
-      if (config.model == "diff") {
+      if (config.mode == "diff") {
         this.tableNames.forEach(line => {
           if (!comm[line]) {
             tarr.push(this.getColumns(connect, config.mysql.database, line));
@@ -199,7 +199,7 @@ DB.prototype.run = function(config, connect, callback) {
       }
 
       if (arr.length == 0) {
-        if (config.model == "diff") {
+        if (config.mode == "diff") {
           // this.closeConn(connect);
           var arr0 = [];
           Promise.all(tarr)
@@ -222,7 +222,7 @@ DB.prototype.run = function(config, connect, callback) {
               callback && callback(err);
               this.closeConn(connect);
             });
-        } else if (config.model == "delete") {
+        } else if (config.mode == "delete") {
           this.closeConn(connect);
         } else {
           var arr0 = [];
@@ -259,7 +259,7 @@ DB.prototype.run = function(config, connect, callback) {
         .then(res => {
           callback && callback(null, null, res);
           var arr0 = [];
-          if (config.model != "delete") {
+          if (config.mode != "delete") {
             names.forEach(tb => {
               arr0.push(
                 this.createTableBySheet(
@@ -800,7 +800,7 @@ DB.prototype.createTableBySheet = function(
           .then(res => {
             callback && callback(null, null, res);
             if (datas.length > 0) {
-              if (config.model == "update") {
+              if (config.mode == "update") {
                 var res1 = this.tableNames;
                 if (res1 && res1.indexOf(tableName) >= 0) {
                   resolve(res1);
@@ -885,7 +885,7 @@ DB.prototype.createTableBySheet = function(
     //       .then(res => {
     //         callback && callback(null, null, res);
     //         if (datas.length > 0) {
-    //           if (config.model == "update") {
+    //           if (config.mode == "update") {
     //             var res1 = this.tableNames;
     //             if (res1 && res1.indexOf(tableName) >= 0) {
     //               resolve(res1);

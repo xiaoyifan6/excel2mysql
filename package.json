@@ -1,6 +1,6 @@
 {
   "name": "excel2mysql",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "根据excel表格创建表格并导入数据库到mysql",
   "main": "index.js",
   "bin": {

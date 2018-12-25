@@ -1,6 +1,6 @@
 module.exports = {
   input: "./sample.xls",
-  mode: "diff",
+  // mode: "diff",
   output: "./",
   mysql: {
     host: "127.0.0.1",
