@@ -10,7 +10,7 @@ if (!fs.existsSync(excelPath)) {
   await excel2mysql(
     {
       input: excelPath,
-      model: "diff",
+      mode: "diff",
       mysql: {
         host: "127.0.0.1",
         user: "work",

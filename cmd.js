@@ -21,13 +21,15 @@ var opt = require("node-getopt")
     ],
     ["", "help", "show Help"],
     ["v", "version", "show version"],
-    ["m", "model=ARG", "model: create(default), delete, update, diff"],
+    ["m", "mode=ARG", "mode: create(default), delete, update, diff"],
 
     ["P", "port=ARG", "mysql:port default: 3306"],
     ["h", "host=ARG", "mysql:host default: 127.0.0.1"],
     ["p", "password=ARG", "mysql:password default: root"],
     ["u", "user=ARG", "mysql:username default: root"],
-    ["d", "database=ARG", "mysql:database"]
+    ["d", "database=ARG", "mysql:database"],
+
+    ["c", "config=ARG", "defualt: default.config.js"]
   ])
   .bindHelp()
   .parseSystem();
@@ -40,26 +42,41 @@ if (version) {
 
 var curPath = process.cwd();
 
-var showSql = opt.options["show-sql"] || opt.options["S"];
+var configFile = path.join(curPath, opt.options["c"] || "default.config.js");
+
+let _config = {};
+let _configDir = curPath;
+
+if (fs.existsSync(configFile)) {
+  _config = require(configFile);
+  _configDir = path.dirname(configFile);
+}
+
+var showSql =
+  _config["show-sql"] || opt.options["show-sql"] || opt.options["S"];
 var sqlLimit = opt.options["S"];
-var output = opt.options["o"];
+var output = path.join(_configDir, _config["output"] || opt.options["o"]);
 
 var config = {};
 
-if (opt.options["d"]) {
+if (_config["mysql"] || opt.options["d"]) {
+  if (!_config["mysql"]) {
+    _config["mysql"] = {};
+  }
   config.mysql = {
-    host: opt.options["h"] || "127.0.0.1",
-    user: opt.options["u"] || "root",
-    password: opt.options["p"] || "root",
-    port: opt.options["P"] || "3306",
-    database: opt.options["d"]
+    host: _config["mysql"]["host"] || opt.options["h"] || "127.0.0.1",
+    user: _config["mysql"]["user"] || opt.options["u"] || "root",
+    password: _config["mysql"]["password"] || opt.options["p"] || "root",
+    port: _config["mysql"]["port"] || opt.options["P"] || "3306",
+    database: _config["mysql"]["database"] || opt.options["d"]
   };
 }
 
-config.model = opt.options["m"] || "create";
-config.input = opt.options["i"];
-config.no_comment = opt.options["no-comment"];
-config.ingnore_prefix = opt.options["ingnore-prefix"] || "_";
+config.mode = _config["mode"] || opt.options["m"] || "create";
+config.input = path.join(_configDir, _config["input"] || opt.options["i"]);
+config.no_comment = _config["no-comment"] || opt.options["no-comment"];
+config.ingnore_prefix =
+  _config["ingnore-prefix"] || opt.options["ingnore-prefix"] || "_";
 
 if (config.input && !path.isAbsolute(config.input)) {
   config.input = path.join(curPath, config.input);
@@ -75,7 +92,7 @@ try {
       if (state.isDirectory()) {
         //如果是已存在的路径 就加上sql文件
         // output += "/" + (config.database || "db") + ".sql";
-        if (config.model === "diff") {
+        if (config.mode === "diff") {
           output = path.join(output, (config.database || "db") + ".json");
         } else {
           output = path.join(output, (config.database || "db") + ".sql");
@@ -83,10 +100,10 @@ try {
       } else {
         fs.unlinkSync(output);
       }
-      fs.writeFileSync(output, config.model === "diff" ? "" : "# sql\r\n");
+      fs.writeFileSync(output, config.mode === "diff" ? "" : "# sql\r\n");
     } else {
       //直接写入 如果异常，则说明不是文件或者文件路径不存在
-      fs.writeFileSync(output, config.model === "diff" ? "" : "# sql\r\n");
+      fs.writeFileSync(output, config.mode === "diff" ? "" : "# sql\r\n");
     }
   }
 } catch (e) {
@@ -128,7 +145,7 @@ try {
       }
     }
   });
-  if (config.model === "diff") {
+  if (config.mode === "diff") {
     fs.appendFileSync(output, JSON.stringify(jsonData, null, "\t"));
   }
 })();

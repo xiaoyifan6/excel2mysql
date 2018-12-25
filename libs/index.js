@@ -68,7 +68,7 @@ function DB(config, callback, nomysql, wait_cbk) {
     /**
      * create delete update
      */
-    config.model = config.model || "create";
+    config.model = config.mode || config.model || "create";
     config.ingnore_prefix = config.ingnore_prefix || "_";
 
     this.tableNames = [];

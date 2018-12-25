@@ -157,6 +157,51 @@ excel2mysql -o ./db.sql -i ./sample/sample.xls -S 100
 excel2mysql -o ./db.sql -i ./sample/sample.xls -S 100 -uwork -pwork -dtest
 ```
 
+### import config file
+
+```
+excel2mysql -c  ./sample/config.json -S 100
+
+# or
+
+excel2mysql -c  ./sample/default.config.js -S 100
+
+```
+
+./sample/default.config.js:
+
+```
+module.exports = {
+  input: "./sample.xls",
+  mode: "diff",
+  output: "./",
+  mysql: {
+    host: "127.0.0.1",
+    user: "work",
+    password: "work",
+    port: "3306",
+    database: "test"
+  }
+};
+```
+
+./sample/config.json:
+
+```
+{
+  "input": "./sample.xls",
+  "mode": "create",
+  "output": "./",
+  "mysql": {
+    "host": "127.0.0.1",
+    "user": "work",
+    "password": "work",
+    "port": "3306",
+    "database": "test"
+  }
+}
+```
+
 ### Compare excel and mysql
 
 ```
@@ -181,12 +226,13 @@ Options:
       --ingnore-prefix=ARG if the name field starts with that, it will be ignored
       --help               show Help
   -v, --version            show version
-  -m, --model=ARG          model: create(default), delete, update, diff
+  -m, --mode=ARG           mode: create(default), delete, update, diff
   -P, --port=ARG           mysql:port default: 3306
   -h, --host=ARG           mysql:host default: 127.0.0.1
   -p, --password=ARG       mysql:password default: root
   -u, --user=ARG           mysql:username default: root
   -d, --database=ARG       mysql:database
+  -c, --config=ARG         defualt: default.config.js
 ```
 
 ---
