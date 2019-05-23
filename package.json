@@ -1,6 +1,6 @@
 {
   "name": "excel2mysql",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "description": "根据excel表格创建表格并导入数据库到mysql",
   "main": "index.js",
   "bin": {
@@ -31,9 +31,9 @@
   },
   "homepage": "https://github.com/xiaoyifan6/excel2mysql#readme",
   "dependencies": {
-    "diff-json": "^1.1.0",
+    "diff-json": "^2.0.0",
     "fs": "0.0.1-security",
-    "mysql": "^2.16.0",
+    "mysql": "^2.17.1",
     "node-getopt": "^0.3.2",
     "path": "^0.12.7",
     "xlsx-to-json-lc": "^0.5.0"
